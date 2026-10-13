@@ -1,0 +1,46 @@
+{
+  "name": "Drips",
+  "vendor": "Padbangers",
+  "uid": "PbBd",
+  "version": 1000,
+  "so": "drips.so",
+  "params": "params.json",
+  "layout": "layout.conf",
+  "art": "html",
+  "effect": true,
+  "defines": {
+    "OPTION_QLINK_ZONES": 1,
+    "HAS_HOST_TRANSPORT": 1
+  },
+  "build": {
+    "root": ".",
+    "sources": [
+      "src/engine.cc",
+      "src/midi_in.cc",
+      "src/mod.cc",
+      "third_party/beads/beads/dsp/delay_clock.cc",
+      "third_party/beads/beads/dsp/delay_controller.cc",
+      "third_party/beads/beads/dsp/mu_law.cc",
+      "third_party/beads/beads/dsp/processor.cc",
+      "third_party/beads/beads/dsp/synth.cc",
+      "third_party/beads/beads/dsp/trigger_generator.cc",
+      "third_party/beads/beads/resources.cc",
+      "third_party/beads/stmlib/dsp/atan.cc",
+      "third_party/beads/stmlib/dsp/units.cc",
+      "third_party/beads/stmlib/utils/random.cc"
+    ],
+    "cflags": [
+      "-DTEST",
+      "-Ithird_party/beads",
+      "-Ithird_party/mpc-vst-plugins/wrapper",
+      "-Wno-unused-parameter",
+      "-Wno-narrowing",
+      "-Wno-unused-local-typedefs"
+    ],
+    "libs": [
+      "-lm",
+      "-ldl",
+      "-lpthread"
+    ]
+  }
+}
