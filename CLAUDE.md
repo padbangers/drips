@@ -108,11 +108,17 @@ Skin preview: as in Overcast's runbook, with `~/.cache/drips-build/port` and `Pa
 - **Branding rule** (catalog README, #394/#404): no other company's name or logo in the skin, screenshot or plugin
   name; summary and tags may describe it ("from Émilie Gillet's open-source Beads"). The `mutable-instruments` tag was
   dropped from such ports. The skin text names no product.
-- Release: `tools/release.py ... --version X.Y.Z --bench build/bench.txt --repo FullPace/drips --license MIT --id drips -o dist`,
-  then `tools/catalog_check.py dist/<zip> --catalog --expect-id drips --expect-repo FullPace/drips`.
+- Release: `tools/release.py ... --version X.Y.Z --bench build/bench.txt --repo padbangers/drips --license MIT --id drips -o dist`,
+  then `tools/catalog_check.py dist/<zip> --catalog --expect-id drips --expect-repo padbangers/drips`.
+
+## GitHub
+
+Repo `padbangers/drips` (GitHub organisation "padbangers", owned by the user's account FullPace; moved there from
+FullPace/drips on 2026-10-13 before the catalog listing, since a release zip records its repo in `source_repo` and
+the catalog entry must match it). Overcast and Glass Spheres are still under FullPace; moving them means a new release
+with `--repo padbangers/<name>` and a catalog PR changing `repo`.
 
 ## Next steps / open
 
 - Drips' own graphics (knobs, small RND knobs, tags, snowflake, Seed button colour) to replace the placeholders;
   then update `THEME`/`COLOUR` in `gen_layout.py` and `skin/drips.css`.
-- GitHub repo, release and catalog entry: not done (follow Overcast's release steps).
