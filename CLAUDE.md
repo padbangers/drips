@@ -13,8 +13,8 @@ pichenettes/eurorack, MIT) as a native MPC OS insert effect, built with the sd88
 (submodule, pinned to 818f574 like Overcast so its `patches/` apply). Name **Drips**, MPC folder
 `Padbangers - VST - Drips`, `drips.so`, uid `PbBd`, MIDI port "Drips N".
 
-Status (2026-10-13): 1.0.0 packaged (`dist/`, catalog check OK). Installed on the MPC X and played by the user
-(MIDI arrives; freeze + MIDI pitch works with Source = Input). Bench on the MPC X: p99 9.9 %, worst block 11.1 %, PASS.
+Status (2026-10-13): **1.0.0 released** (tag `drips-v1.0.0`, catalog check OK), installed on the MPC X with the
+zip's own `install.sh -y` and smoke-tested by the user (tabs, Q-Links, Seed pad, settings, save/reload). Bench on the MPC X: p99 9.9 %, worst block 11.1 %, PASS.
 Graphics: the background is the user's (`assets/Background.jpg` →
 `skin/drips_bg.jpg`); knobs, tags and the snowflake are Overcast's images as placeholders until Drips' own arrive.
 
