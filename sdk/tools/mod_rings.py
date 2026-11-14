@@ -5,7 +5,7 @@ run it after mode_dest_lists.py, which starts again from the original TUI.json.
 What to change comes from sdk/skin.json:
   "views": {"page": "<main tab component>", "knob_def": "<regex of the knob components>",
             "knobs": ["<param key>", ...], "toggle_def": "<toggle component>", "toggle_key": "<param key>",
-            "locks": {"<param key>": "<view suffix>", ...}}          (locks: optional)
+            "locks": {"<param key>": "<view suffix>", ...}}          (toggle and locks: optional)
 The values are the read-only display parameters of sdk/src/views.h ("view_<x>", index NPARAMS + n), which the engine
 fills from what the DSP really got last block:
   * knobs: a 65-frame filmstrip the size of the knob's strip, frame 0 empty (nothing modulates the knob), frames
@@ -140,9 +140,10 @@ def main():
     knob_def = re.compile(cfg["knob_def"])
     pidx = params()
     knob_views = {pidx[k]: k for k in cfg["knobs"]}
-    toggle_param = pidx[cfg["toggle_key"]]
+    toggle = "toggle_key" in cfg
+    toggle_param = pidx[cfg["toggle_key"]] if toggle else -1
     locks = {pidx[k]: v for k, v in cfg.get("locks", {}).items()}
-    toggle_mod = cfg["toggle_def"] + "_mod"
+    toggle_mod = cfg["toggle_def"] + "_mod" if toggle else None
 
     path = os.path.join(SKINS, "TUI.json")
     tui = json.load(open(path, encoding="utf-8"))
@@ -163,24 +164,25 @@ def main():
         e["value"]["componentsData"] = comps
 
     # the toggle's "on" image gets a white outline; the lit toggle: a copy whose buttons show it also when off
-    for c in by_key[cfg["toggle_def"]]["value"]["componentsData"]:
-        if c["componentData"].get("type") == "Button":
-            c["componentData"]["data"]["onImage"] = bordered(c["componentData"]["data"]["onImage"])
-    mod = json.loads(json.dumps(by_key[cfg["toggle_def"]]))
-    mod["key"] = toggle_mod
-    for c in mod["value"]["componentsData"]:
-        if c["componentData"].get("type") == "Button":
-            c["componentData"]["data"]["offImage"] = c["componentData"]["data"]["onImage"]
-    local.append(mod)
+    if toggle:
+        for c in by_key[cfg["toggle_def"]]["value"]["componentsData"]:
+            if c["componentData"].get("type") == "Button":
+                c["componentData"]["data"]["onImage"] = bordered(c["componentData"]["data"]["onImage"])
+        mod = json.loads(json.dumps(by_key[cfg["toggle_def"]]))
+        mod["key"] = toggle_mod
+        for c in mod["value"]["componentsData"]:
+            if c["componentData"].get("type") == "Button":
+                c["componentData"]["data"]["offImage"] = c["componentData"]["data"]["onImage"]
+        local.append(mod)
 
     page_def = by_key[cfg["page"]]["value"]
-    lock_conds = {"IndexedEnabling/0/2/Parameter %d" % view_index(v) for v in list(locks.values()) + [cfg["toggle_key"]]}
+    lock_conds = {"IndexedEnabling/0/2/Parameter %d" % view_index(v) for v in list(locks.values()) + ([cfg["toggle_key"]] if toggle else [])}
     out, mapped, locked = [], 0, 0
     for c in page_def["componentsData"]:
         t = c["componentData"].get("type")
         if c["componentData"].get("name") == TAG or t in OLD:
             continue
-        if t == toggle_mod:   # the original entry, as an earlier version of this script left it
+        if toggle and t == toggle_mod:   # the original entry, as an earlier version of this script left it
             c["componentData"]["type"] = t = cfg["toggle_def"]
         m = c["handle remapping"]["map"]
         m[:] = [x for x in m if x["key"] != "View"]
@@ -193,7 +195,7 @@ def main():
         if knob_def.match(t) and p in knob_views:
             m.append({"key": "View", "value": "Parameter %d" % view_index(knob_views[p])})
             mapped += 1
-        elif t == cfg["toggle_def"] and p == toggle_param:
+        elif toggle and t == cfg["toggle_def"] and p == toggle_param:
             v = view_index(cfg["toggle_key"])
             lit = json.loads(json.dumps(c))
             lit["componentData"]["type"] = toggle_mod
@@ -231,8 +233,8 @@ def main():
     with open(path, "w", encoding="utf-8", newline="\n") as f:
         json.dump(tui, f, ensure_ascii=False, separators=(", ", ": "))
     print("rings in %d knob components, %d controls bound, %d lockable knobs" % (knobs, mapped, locked))
-    if mapped != len(knob_views) + 1 or locked != len(locks):
-        sys.exit("expected %d bound controls and %d locks" % (len(knob_views) + 1, len(locks)))
+    if mapped != len(knob_views) + toggle or locked != len(locks):
+        sys.exit("expected %d bound controls and %d locks" % (len(knob_views) + toggle, len(locks)))
 
 
 if __name__ == "__main__":

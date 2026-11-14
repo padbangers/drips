@@ -415,8 +415,10 @@ private:
     void* dsp_ = nullptr;
     int16_t block_[kDspBlock * 2] = {};
     int pos_ = kDspBlock;
+#if WRAP_IS_EFFECT
     int16_t inb_[kDspBlock * 2] = {};
     int inpos_ = 0;
+#endif
     double bpm_ = 0;
     volatile int holdFrames_[NPARAMS] = {};
     float shadow_[NPARAMS];
