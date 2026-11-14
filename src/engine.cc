@@ -144,6 +144,18 @@ void InitModParams() {
 template<typename T> T Clamp(T x, T lo, T hi) { return x < lo ? lo : (x > hi ? hi : x); }
 
 // The PITCH pot's law (cv_reader.h, LAW_DETUNE): -24..+24 semitones with notches at 0, 1, 3, 4, 7, 12 and 24.
+float PitchKnobToSemitones(float knob);
+
+// The knob position that gives a pitch (the law below is monotonic): for the skin's modulation dot.
+float SemitonesToPitchKnob(float semitones) {
+  float lo = 0.0f, hi = 1.0f;
+  for (int i = 0; i < 14; ++i) {
+    float mid = 0.5f * (lo + hi);
+    if (PitchKnobToSemitones(mid) < semitones) lo = mid; else hi = mid;
+  }
+  return 0.5f * (lo + hi);
+}
+
 float PitchKnobToSemitones(float knob) {
   float detune = 2.0f * Clamp(knob, 0.0f, 1.0f) - 1.0f;
   float sign = detune < 0.0f ? -1.0f : 1.0f;
@@ -221,6 +233,11 @@ struct Instance {
   double ppq, bpm;
 
   float limiter_peak;
+
+  // What the modulation does, for the skin's dots (get_param("view_<key>"), sdk/src/views.h): per destination the
+  // value the DSP got last module block (0..1 of the knob's range), and whether any matrix slot drives it.
+  volatile float view_value[mod::DST_LAST];
+  volatile bool view_active[mod::DST_LAST];
 };
 
 int Option(const Instance* s, int p) { return static_cast<int>(s->param[p] + 0.5f); }
@@ -496,6 +513,26 @@ int GetParam(void* inst, const char* key, char* buf, int buf_len) {
   const Instance* s = static_cast<const Instance*>(inst);
   if (!strcmp(key, "state")) return SaveState(s, buf, buf_len);
   if (!strcmp(key, "busy")) return snprintf(buf, buf_len, "%d", s->configuring.load() ? 1 : 0);   // for tests
+  if (!strncmp(key, "view_", 5)) {
+    // The skin's modulation display (sdk/src/views.h), read-only. Knobs: a 65-frame dot strip, frame 0 = nothing
+    // modulates it, 1..64 = where the modulated value is. Freeze: 1 while the matrix (not the button) freezes.
+    // RANDOM knob locks: 1 while the matrix drives that parameter (the knob is off, the skin greys it out)
+    static const char* const kLockKeys[4] = { "time_lock", "size_lock", "shape_lock", "pitch_lock" };
+    static const int kLockDest[4] = { mod::DST_TIME, mod::DST_SIZE, mod::DST_SHAPE, mod::DST_PITCH };
+    for (int k = 0; k < 4; ++k)
+      if (!strcmp(key + 5, kLockKeys[k])) return snprintf(buf, buf_len, "%d", ModTargets(s, kLockDest[k]) ? 1 : 0);
+    static const char* const kViewKeys[mod::DST_LAST] = {
+      "", "time", "size", "shape", "pitch", "density", "feedback", "dry_wet", "reverb", "freeze", "seed" };
+    for (int d = mod::DST_TIME; d < mod::DST_LAST; ++d) {
+      if (strcmp(key + 5, kViewKeys[d])) continue;
+      if (d == mod::DST_FREEZE)
+        return snprintf(buf, buf_len, "%d", s->view_active[d] && s->view_value[d] > 0.5f && !Option(s, P_FREEZE));
+      float v = s->view_active[d] ? (1.0f + 63.0f * Clamp(static_cast<float>(s->view_value[d]), 0.0f, 1.0f)) / 64.0f
+                                  : 0.0f;
+      return snprintf(buf, buf_len, "%.4f", v);
+    }
+    return 0;
+  }
   size_t key_len = strlen(key);
   for (int suffix = 0; suffix < 2; ++suffix) {
     const char* tail = suffix ? "_display" : "_name";
@@ -584,8 +621,11 @@ void RunModuleBlock(Instance* s, const StereoFrame* in, StereoFrame* out, size_t
   float note = Option(s, P_MIDI_PITCH) ? s->note_offset : 0.0f;
   p.pitch.base = PitchKnobToSemitones(pot[P_PITCH]) + note + 24.0f * m.out(mod::DST_PITCH);
   RandomizedParameter* rp[4] = { &p.time, &p.size, &p.shape, &p.pitch };
+  static const int kRandomDest[4] = { mod::DST_TIME, mod::DST_SIZE, mod::DST_SHAPE, mod::DST_PITCH };
   for (int i = 0; i < 4; ++i) {
-    rp[i]->attenuverter = AttenuverterLaw(pot[P_TIME_AMT + i]);
+    // As patching the module's TIME/SIZE/SHAPE/PITCH jack: while the matrix drives it, the RANDOM knob is off and the
+    // modulation acts as a CV with RANDOM fully right (knob + CV, no randomness). The skin greys the knob out.
+    rp[i]->attenuverter = ModTargets(s, kRandomDest[i]) ? 0.0f : AttenuverterLaw(pot[P_TIME_AMT + i]);
     rp[i]->cv = 0.0f;
     rp[i]->has_cv = false;
   }
@@ -602,6 +642,15 @@ void RunModuleBlock(Instance* s, const StereoFrame* in, StereoFrame* out, size_t
   mix.output_gate = false;
 
   bool freeze_on = Option(s, P_FREEZE) != 0 || m.out(mod::DST_FREEZE) > 0.5f;
+
+  // the skin's modulation display
+  const float view[mod::DST_LAST] = {
+    0.0f, p.time.base, p.size.base, p.shape.base, Clamp(SemitonesToPitchKnob(p.pitch.base), 0.0f, 1.0f),
+    Clamp(d.base + d.cv, 0.0f, 1.0f), mix.feedback, mix.dry_wet, mix.reverb_amount, freeze_on ? 1.0f : 0.0f, 0.0f };
+  for (int k = 0; k < mod::DST_LAST; ++k) {
+    s->view_value[k] = view[k];
+    s->view_active[k] = k != mod::DST_OFF && ModTargets(s, k);
+  }
   bool freeze[kMaxModuleBlock];
   for (size_t i = 0; i < n; ++i) freeze[i] = freeze_on;
 

@@ -6,6 +6,17 @@ Everything needed to build, deploy and continue the Drips insert effect lives in
 Overcast's `CLAUDE.md` has the device findings both rely on (MPC sends no MIDI to effects, Q-Link behaviour,
 drop-downs, focus frames); they are not repeated here.
 
+## Akai MPC Plugin SDK build (1.1.0, 2026-11-14): the current route
+
+From 1.1.0 Drips is built with Akai's MPC Plugin SDK in `sdk/` (Windows, macOS or Linux, no Docker):
+`python sdk/build.py`, install with the SDK's `mpc_remote.py`. Details, test results and known host_sim reports in
+`sdk/README.md`. The engine runs behind `sdk/src/wrapper_adapter.h` (shared with Overcast), which keeps the old
+wrapper's parameter, popup and state behaviour (old projects load). New on top of 1.0.0: modulation dots around the
+DRIPS tab's knobs and the snowflake lit while the matrix freezes (`sdk/src/views.h`, read-only params 89..97); MANUAL
+tab at 15 px with the Ko-fi line under the topic list. The skin is the rendered 1.0.0 skin, patched by the scripts in
+`sdk/tools/`. The native Windows build crashed in Beads at 32 kHz: Microsoft bitfield layout made the packed 12-bit delay items 4
+bytes instead of 3 (fixed in `third_party/beads/beads/dsp/delay_line.h`, see its README; ARM was never affected). The Docker route below still builds the `.so`, without these skin patches.
+
 ## What this is
 
 Mutable Instruments **Beads** (texture synthesizer, Clouds' successor; source published 2026-10-12 in

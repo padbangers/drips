@@ -49,6 +49,15 @@ enum Resolution {
   RESOLUTION_LAST
 };
 
+// Padbangers port: the 12-bit items pack two 12-bit bitfields into 3 bytes. Windows compilers lay bitfields out the
+// Microsoft way (a 12-bit field can't share an int16_t), which makes them 4 bytes and overruns the delay buffers.
+// gcc_struct keeps the GCC layout there; the static_asserts below make any other layout a compile error.
+#if defined(_WIN32)
+#define BEADS_PACKED_ITEM __attribute__((packed, gcc_struct))
+#else
+#define BEADS_PACKED_ITEM __attribute__((packed))
+#endif
+
 template<Resolution resolution, int num_channels>
 struct Item { };
 
@@ -98,7 +107,8 @@ struct Item<RESOLUTION_12_BIT, 2> {
   enum { bundle_size = 1 };
   int16_t l : 12;
   int16_t r : 12;
-} __attribute__((packed));
+} BEADS_PACKED_ITEM;
+static_assert(sizeof(Item<RESOLUTION_12_BIT, 2>) == 3, "12-bit stereo item must be 3 bytes");
 
 template<>
 struct Item<RESOLUTION_12_BIT, 1> {
@@ -119,7 +129,8 @@ struct Item<RESOLUTION_12_BIT, 1> {
   enum { bundle_size = 2 };
   int16_t odd : 12;
   int16_t even : 12;
-} __attribute__((packed));
+} BEADS_PACKED_ITEM;
+static_assert(sizeof(Item<RESOLUTION_12_BIT, 1>) == 3, "12-bit mono item must be 3 bytes");
 
 template<>
 struct Item<RESOLUTION_8_BIT, 1> {

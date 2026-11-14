@@ -90,8 +90,8 @@ MANUAL = [
         "picked when the grain starts. Right of 12 o'clock: evenly spread random values. Left: a peaky",
         "source, mostly small changes with occasional big ones. In delay mode they are slow random LFOs.",
         "The more randomness (RANDOM knobs, random density), the wider the grains spread in stereo.",
-        "",
         "Modulation from the matrix is added to the knob, like a CV with the RANDOM knob fully right.",
+        "While the matrix drives TIME, SIZE, SHAPE or PITCH, that RANDOM knob is off and greyed out.",
     ]),
     ("SEED", [
         "SEED MODE and SEED INPUT are on the SETTINGS tab; the big SEED pad is on the DRIPS tab.",
@@ -283,6 +283,10 @@ def mod_page():
     return L
 
 
+MANUAL_SIZE = 1.5   # 15 px body text on the MANUAL tab (sdk/tools/manual_art.py draws the same for the SDK skin)
+SUPPORT = ["Support the project:", "Ko-Fi.com/padbangers"]
+
+
 def manual_page():
     L = ["[tab MANUAL]", BACKGROUND,
          'enum_v cx=150 cy=430 label="" key=manual_page sw=220 options="%s"' % ",".join(t for t, _ in MANUAL)]
@@ -291,8 +295,11 @@ def manual_page():
         L.append(text(320, 214, title, "c83d58", size=1.8, when=when, align="left"))
         for j, line in enumerate(lines):
             if line:
-                L.append(text(320, 254 + j * 35, line.replace('"', "'"), INK, size=1.45, when=when, weight=600,
-                              align="left"))
+                L.append(text(320, 254 + j * 35, line.replace('"', "'"), INK, size=MANUAL_SIZE, when=when,
+                              weight=600, align="left"))
+    # On every topic, under the topic list.
+    for j, line in enumerate(SUPPORT):
+        L.append(text(150, 600 + j * 24, line, "c83d58", size=MANUAL_SIZE))
     L.append('qlinks "MANUAL" = manual_page')
     return L
 

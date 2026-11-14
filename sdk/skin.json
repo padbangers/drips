@@ -1,0 +1,28 @@
+{
+  "manual": {
+    "tab": 3,
+    "ink": "1d1d22"
+  },
+  "views": {
+    "page": "DRIPS|DRIPS",
+    "knob_def": "^shKnob26_",
+    "knobs": [
+      "time",
+      "size",
+      "shape",
+      "pitch",
+      "density",
+      "feedback",
+      "dry_wet",
+      "reverb"
+    ],
+    "toggle_def": "shToggle_43ec665f_64x64",
+    "toggle_key": "freeze",
+    "locks": {
+      "time_amt": "time_lock",
+      "size_amt": "size_lock",
+      "shape_amt": "shape_lock",
+      "pitch_amt": "pitch_lock"
+    }
+  }
+}

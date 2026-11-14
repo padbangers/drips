@@ -1,0 +1,17 @@
+{
+  "name": "Drips",
+  "manufacturer": "Padbangers",
+  "version": "1.1.0",
+  "format": "vst2",
+  "kind": "effect",
+  "uid": "PbBd",
+  "category": "Effect",
+  "numInputs": 2,
+  "numOutputs": 2,
+  "file32": "VST/drips-arm32.so",
+  "file64": "VST/drips-arm64.so",
+  "description": "A granular texture synthesizer with four recording qualities, a delay and beat slicer, tempo-synced seeding, wavetables and a modulation page, from Emilie Gillet's open-source Beads.",
+  "author": "Padbangers",
+  "url": "https://github.com/padbangers/drips",
+  "license": "MIT"
+}
